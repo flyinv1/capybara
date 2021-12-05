@@ -86,6 +86,10 @@ dv = isp * g0 * np.log(mr)
 cross_area = np.pi * r_outer ** 2
 Cd = qty(0.4, "dimensionless")
 rho_sea_air = qty(1.116, "kg/m^3")
+# Todo: 
+# [ ] convert drag to function of velocity
+# [ ] add wave drag in transonic regime
+# [ ] add Cd function
 vavg = qty(450, "m/s")
 drag = 1 / 2 * Cd * rho_sea_air * (vavg / 2) ** 2 * cross_area
 
@@ -112,8 +116,6 @@ Pe = Pa # Optimize for 4000ft performance
 Pr = Pc / Pe
 AR = 5 # Area ratio for ideal expansion (k = 1.2)
 
-print("PR:", Pr)
-
 At = mdot * cstar / (Pc)
 Ae = At * AR
 Cf = thrust / (Pc * At)
@@ -121,11 +123,32 @@ rt = np.sqrt(At / np.pi)
 re = np.sqrt(Ae / np.pi)
 dt = 2 * rt
 de = 2 * re
+rho_prop = lox_rho / (1 + 1 / OF) + ipa_rho / (1 + OF)
+vol_ratio = lox_vol / ipa_vol
 
-Ac = 3 * At # Chamber Area
+print("Average density:", rho_prop)
+print("Volume ratio", vol_ratio)
+
+contraction_ratio = 3
+Ac = contraction_ratio * At # Chamber Area
 rc = np.sqrt(Ac / np.pi)
-Lc = qty(6, "in")
 
+Lstar = qty(15, "in") # From SP-125 for RP-1 - conservative for IPA
+Vc = Lstar * At
+ts = Vc / (1 / rho_prop * mdot)
+contraction_half_angle = qty(45, "degrees")
+
+Lc_cyl = (Vc / At - 1 / 3 * np.sqrt(At / np.pi) * 1 / np.tan(contraction_half_angle.to("rad")) * (contraction_ratio ** (1 / 3) - 1)) / contraction_ratio
+Lc_contraction = np.tan(contraction_half_angle.to("rad")) * (rc - rt)
+
+print('chamber length:', Lc_cyl.to("in"))
+print('converging length:', Lc_contraction.to("in"))
+print("chamber vol:", Vc.to("L"))
+print("stay time:", ts.to("s"))
+
+print()
+
+print("PR:", Pr)
 print("Cf:", Cf)
 print("Throat area:", At.to("in^2"))
 print("Throat diameter:", dt.to("in"))
@@ -135,4 +158,3 @@ print("Exit diameter:", de.to("in"))
 
 
 # %%
-
